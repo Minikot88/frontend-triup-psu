@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import SidebarLayout from "@/components/SidebarLayout";
-import { isAdmin, getSession } from "@/utils/role";
 import { isAdminLoggedIn } from "@/utils/auth-admin";
+import { isAdminOrCeo, getSession } from "@/utils/role";
 
 // CHARTS
 import {
@@ -29,7 +29,6 @@ export default function DashboardPage() {
   const [fullname, setFullname] = useState("");
   const [roleName, setRoleName] = useState("");
 
-  // 📊 STAT STATES
   const [usersStat, setUsersStat] = useState(null);
   const [findingsStat, setFindingsStat] = useState(null);
   const [monthly, setMonthly] = useState([]);
@@ -40,7 +39,7 @@ export default function DashboardPage() {
   const API = process.env.NEXT_PUBLIC_API_URL;
 
   useEffect(() => {
-    if (!isAdmin()) {
+    if (!isAdminOrCeo()) {
       router.replace("/403");
       return;
     }
@@ -51,18 +50,18 @@ export default function DashboardPage() {
     }
 
     const session = getSession();
+
     const _fullname =
       session?.profile?.fullname ||
       `${session?.profile?.first_name ?? ""} ${
         session?.profile?.last_name ?? ""
       }`.trim() ||
       session?.user?.username ||
-      "Admin";
+      "User";
 
     setFullname(_fullname);
     setRoleName(session?.user?.role_name || "");
 
-    // 🚀 โหลดข้อมูล Dashboard
     async function loadStatistics() {
       const u = await fetch(`${API}/api/statistics/users`).then((r) =>
         r.json()
@@ -92,56 +91,62 @@ export default function DashboardPage() {
     }
 
     loadStatistics();
-
     setReady(true);
   }, []);
 
   if (!ready) return null;
 
-  const COLORS = ["#1E88E5", "#43A047", "#FB8C00", "#8E24AA", "#F4511E"];
+  // 🎨 สีสันแบบสุภาพ
+  const COLORS = ["#EF4444", "#3B82F6", "#10B981", "#F59E0B", "#6366F1"];
 
   return (
     <SidebarLayout>
-      <div className="p-8 space-y-10">
+      <div className="p-8 space-y-10 bg-gray-50 min-h-screen">
         {/* HEADER */}
         <header>
-          <h1 className="text-4xl font-semibold tracking-tight">
-            ระบบจัดการผู้ดูแลระบบ
-          </h1>
-          <p className="text-gray-600 mt-2">
-            Welcome, <span className="font-medium">{fullname}</span> •{" "}
-            <span className="text-blue-700 font-medium">{roleName}</span>
+          <h1 className="text-2xl font-semibold text-gray-900">Dashboard</h1>
+          <p className="text-sm text-gray-500 mt-1">
+            Welcome, <span className="font-medium">{fullname}</span> ·{" "}
+            <span className="text-red-600 font-medium">{roleName}</span>
           </p>
         </header>
 
         {/* SUMMARY CARDS */}
-        <section className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <Card title="ผู้ใช้ทั้งหมด" value={usersStat?.total_users || 0} />
+        <section className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <Card
+            title="ผู้ใช้ทั้งหมด"
+            value={usersStat?.total_users || 0}
+            color="red"
+          />
           <Card
             title="ผลงานทั้งหมด"
             value={findingsStat?.total_findings || 0}
+            color="blue"
           />
           <Card
-            title="จำนวนสถานะผลงาน"
+            title="สถานะผลงาน"
             value={findingsStat?.findings_by_status?.length || 0}
+            color="purple"
           />
-          <Card title="จำนวนภาควิชา" value={departmentStat?.length || 0} />
+          <Card
+            title="ภาควิชา"
+            value={departmentStat?.length || 0}
+            color="green"
+          />
         </section>
 
-        {/* CHART GRID */}
+        {/* CHARTS */}
         <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* PIE CHART */}
           <ChartCard title="ผู้ใช้ตาม Role">
-            <ResponsiveContainer width="100%" height={280}>
+            <ResponsiveContainer width="100%" height={260}>
               <PieChart>
                 <Pie
                   data={usersStat?.users_by_role || []}
                   dataKey="_count.roles_id"
                   nameKey="roles_name"
-                  outerRadius={100}
-                  label
+                  outerRadius={90}
                 >
-                  {(usersStat?.users_by_role || []).map((entry, i) => (
+                  {(usersStat?.users_by_role || []).map((_, i) => (
                     <Cell key={i} fill={COLORS[i % COLORS.length]} />
                   ))}
                 </Pie>
@@ -150,21 +155,19 @@ export default function DashboardPage() {
             </ResponsiveContainer>
           </ChartCard>
 
-          {/* BAR CHART */}
-          <ChartCard title="สถานะผลงานวิจัย">
-            <ResponsiveContainer width="100%" height={280}>
+          <ChartCard title="สถานะผลงาน">
+            <ResponsiveContainer width="100%" height={260}>
               <BarChart data={findingsStat?.findings_by_status || []}>
                 <XAxis dataKey="status" />
                 <YAxis />
                 <Tooltip />
-                <Bar dataKey="_count.status" fill="#1976D2" />
+                <Bar dataKey="_count.status" fill="#3B82F6" />
               </BarChart>
             </ResponsiveContainer>
           </ChartCard>
 
-          {/* LINE CHART – MONTHLY */}
-          <ChartCard title="จำนวนงานวิจัยรายเดือน (Line Chart)">
-            <ResponsiveContainer width="100%" height={280}>
+          <ChartCard title="งานวิจัยรายเดือน">
+            <ResponsiveContainer width="100%" height={260}>
               <LineChart data={monthly}>
                 <XAxis dataKey="month" />
                 <YAxis />
@@ -172,28 +175,26 @@ export default function DashboardPage() {
                 <Line
                   type="monotone"
                   dataKey="count"
-                  stroke="#E53935"
+                  stroke="#EF4444"
                   strokeWidth={2}
                 />
               </LineChart>
             </ResponsiveContainer>
           </ChartCard>
 
-          {/* BAR CHART – YEAR */}
-          <ChartCard title="จำนวนงานวิจัยรายปี">
-            <ResponsiveContainer width="100%" height={280}>
+          <ChartCard title="งานวิจัยรายปี">
+            <ResponsiveContainer width="100%" height={260}>
               <BarChart data={yearly}>
                 <XAxis dataKey="year" />
                 <YAxis />
                 <Tooltip />
-                <Bar dataKey="count" fill="#8E24AA" />
+                <Bar dataKey="count" fill="#6366F1" />
               </BarChart>
             </ResponsiveContainer>
           </ChartCard>
 
-          {/* BUDGET CHART */}
-          <ChartCard title="งบประมาณรวมรายปี (Budget)">
-            <ResponsiveContainer width="100%" height={280}>
+          <ChartCard title="งบประมาณรายปี">
+            <ResponsiveContainer width="100%" height={260}>
               <LineChart data={budget}>
                 <XAxis dataKey="year" />
                 <YAxis />
@@ -201,7 +202,7 @@ export default function DashboardPage() {
                 <Line
                   type="monotone"
                   dataKey="budget"
-                  stroke="#43A047"
+                  stroke="#10B981"
                   strokeWidth={3}
                 />
               </LineChart>
@@ -209,19 +210,21 @@ export default function DashboardPage() {
           </ChartCard>
         </section>
 
-        {/* EXPORT BUTTONS */}
-        <div className="flex gap-3 mt-8">
+        {/* EXPORT */}
+        <div className="flex gap-3">
           <a
             href={`${API}/api/statistics/export/excel`}
-            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+            className="px-4 py-2 rounded-lg text-sm font-medium
+              bg-emerald-600 text-white hover:bg-emerald-700 transition"
           >
-            ดาวน์โหลด Excel
+            Export Excel
           </a>
           <a
             href={`${API}/api/statistics/export/pdf`}
-            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+            className="px-4 py-2 rounded-lg text-sm font-medium
+              bg-red-600 text-white hover:bg-red-700 transition"
           >
-            ดาวน์โหลด PDF
+            Export PDF
           </a>
         </div>
       </div>
@@ -229,19 +232,26 @@ export default function DashboardPage() {
   );
 }
 
-function Card({ title, value }) {
+function Card({ title, value, color }) {
+  const map = {
+    red: "text-red-600",
+    blue: "text-blue-600",
+    green: "text-emerald-600",
+    purple: "text-indigo-600",
+  };
+
   return (
-    <div className="rounded-2xl bg-white shadow border p-6">
-      <p className="text-gray-500 text-sm">{title}</p>
-      <p className="text-3xl font-bold mt-1">{value}</p>
+    <div className="bg-white border border-gray-200 rounded-xl p-5">
+      <p className="text-xs text-gray-500">{title}</p>
+      <p className={`text-2xl font-semibold mt-1 ${map[color]}`}>{value}</p>
     </div>
   );
 }
 
 function ChartCard({ title, children }) {
   return (
-    <div className="rounded-2xl bg-white shadow border p-6">
-      <h2 className="text-sm font-semibold mb-3">{title}</h2>
+    <div className="bg-white border border-gray-200 rounded-xl p-5">
+      <h2 className="text-sm font-medium text-gray-700 mb-3">{title}</h2>
       {children}
     </div>
   );

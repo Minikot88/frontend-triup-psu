@@ -27,9 +27,20 @@ export function getRoleName() {
 // ROLE CHECK FUNCTIONS
 // -------------------------
 
+// 900 = CEO
+export function isCeo() {
+  return getRoleId() === 900;
+}
+
 // 1000 = ผู้ดูแลระบบ
 export function isAdmin() {
   return getRoleId() === 1000;
+}
+
+// Admin หรือ CEO
+export function isAdminOrCeo() {
+  const role = getRoleId();
+  return role === 900 || role === 1000;
 }
 
 // 2000 = เจ้าหน้าที่วิจัย
@@ -52,8 +63,8 @@ export function isViewer() {
   return getRoleId() === 5000;
 }
 
-// ผู้ใช้ทั่วไปที่ไม่ใช่ admin
+// ผู้ใช้ที่ไม่ใช่ admin / ceo
 export function isNormalUser() {
   const role = getRoleId();
-  return role !== 1000 && role !== null;
+  return role !== 900 && role !== 1000 && role !== null;
 }

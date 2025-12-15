@@ -1,4 +1,5 @@
 "use client";
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiPost } from "@/lib/api";
@@ -46,73 +47,66 @@ export default function LoginPage() {
   }
 
   return (
-    <main
-      className="min-h-screen flex items-center justify-center px-6"
-      style={{
-        background: "linear-gradient(135deg, #D3D5DCFF 0%, #C50A0AFF 100%)",
-      }}
-    >
-      <div className="flex w-full max-w-5xl min-h-[420px] bg-white/10 backdrop-blur-xl shadow-2xl rounded-3xl overflow-hidden">
-        <div
-          className="hidden md:flex flex-col justify-center p-12 w-1/2"
-          style={{
-            background: "linear-gradient(135deg, #CB1111FF, #6571F0FF)",
-            color: "white",
-          }}
-        >
-          <h2 className="text-4xl font-extrabold mb-4 drop-shadow-lg">
-            ฮั่นแน่ admin เหรออ!?
-          </h2>
-        </div>
+    <main className="min-h-screen flex items-center justify-center bg-gray-100 px-6">
+      <div className="w-full max-w-md bg-white border border-gray-200 rounded-2xl shadow-sm p-8">
+        <h1 className="text-center text-sm font-semibold tracking-widest text-red-600">
+          ADMIN LOGIN
+        </h1>
 
-        <div className="flex flex-col justify-center p-10 w-full md:w-1/2 bg-white">
-          <h1 className="text-sm font-semibold text-center tracking-[0.2em] text-[#FE0505FF]">
-            LOGIN ADMIN
-          </h1>
-
-          <form onSubmit={handleLogin} className="mt-8 space-y-4">
+        <form onSubmit={handleLogin} className="mt-8 space-y-5">
+          <div>
+            <label className="block text-xs text-gray-600 mb-1">
+              Email
+            </label>
             <input
               type="email"
-              placeholder="อีเมลหนะ"
+              placeholder="admin@email.com"
               autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full p-3 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-[#CB1111FF] focus:outline-none text-sm"
+              className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm
+                focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-red-600"
             />
+          </div>
 
+          <div>
+            <label className="block text-xs text-gray-600 mb-1">
+              Password
+            </label>
             <input
               type="password"
-              placeholder="รหัสสๆๆๆ"
+              placeholder="••••••••"
               autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full p-3 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-[#CB1111FF] focus:outline-none text-sm"
+              className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm
+                focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-red-600"
             />
+          </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="mt-2 w-full py-3 rounded-xl text-white font-semibold shadow-lg transition text-sm disabled:opacity-70 disabled:cursor-not-allowed"
-              style={{
-                background:
-                  "linear-gradient(135deg, #E36262FF 0%, #4A77D9FF 100%)",
-              }}
-            >
-              {loading ? "กำลังเข้าสู่ระบบ..." : "GOOO"}
-            </button>
-          </form>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-2.5 rounded-lg bg-red-600 text-white text-sm font-medium
+              hover:bg-red-700 transition
+              disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {loading ? "Signing in..." : "Sign in"}
+          </button>
+        </form>
 
-          {msg && (
-            <div className="mt-4 text-center text-sm text-red-600">{msg}</div>
-          )}
+        {msg && (
+          <div className="mt-4 text-center text-xs text-red-600">
+            {msg}
+          </div>
+        )}
+
+        <div className="mt-8 text-center text-xs text-gray-400">
+          © {new Date().getFullYear()} Prince of Songkla University
         </div>
       </div>
-
-      <footer className="absolute bottom-4 text-white/80 text-xs text-center">
-        © {new Date().getFullYear()} Prince of Songkla University
-      </footer>
     </main>
   );
 }
