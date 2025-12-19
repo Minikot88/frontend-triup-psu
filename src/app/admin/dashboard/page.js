@@ -39,16 +39,6 @@ export default function DashboardPage() {
   const API = process.env.NEXT_PUBLIC_API_URL;
 
   useEffect(() => {
-    if (!isAdminOrCeo()) {
-      router.replace("/403");
-      return;
-    }
-
-    if (!isAdminLoggedIn()) {
-      router.replace("/admin/login-admin");
-      return;
-    }
-
     const session = getSession();
 
     const _fullname =

@@ -4,6 +4,8 @@ import SidebarLayout from "@/components/SidebarLayout";
 import React, { useEffect, useState, useMemo } from "react";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
+import { EllipsisVertical, Search } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 export default function HomePage() {
   const [findings, setFindings] = useState([]);
@@ -13,6 +15,9 @@ export default function HomePage() {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+
+  const [openMenu, setOpenMenu] = useState(null);
+  const router = useRouter();
 
   const pageSize = 15;
 
@@ -121,6 +126,23 @@ export default function HomePage() {
     );
   };
 
+  const loadDetail = async (formNewId) => {
+    if (detailCache[formNewId]) return;
+
+    const API_URL = process.env.NEXT_PUBLIC_API_URL;
+    const res = await fetch(
+      `${API_URL}/api/master/form-new-findings/${formNewId}`
+    );
+    const json = await res.json();
+
+    if (json.success) {
+      setDetailCache((prev) => ({
+        ...prev,
+        [formNewId]: json.data,
+      }));
+    }
+  };
+
   return (
     <SidebarLayout>
       <div className="max-w-6xl mx-auto p-6 space-y-6">
@@ -198,9 +220,12 @@ export default function HomePage() {
                       <th className="w-1/6 px-4 py-2 text-left font-medium text-[#000080]">
                         สถานะ
                       </th>
-                      {/* <th className="w-1/6 px-4 py-2 text-right font-medium text-[#000080]">
+                      <th className="w-1/6 px-10 py-2 text-center font-medium text-[#000080]">
                         รายละเอียด
-                      </th> */}
+                      </th>
+                      <th className="w-1/6 px-4 py-2 text-left font-medium text-[#000080]">
+                        เพื่มเติม
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -227,14 +252,29 @@ export default function HomePage() {
                         <td className="px-4 py-2">
                           <StatusBadge status={i.status} />
                         </td>
-                        {/* <td className="px-4 py-2 text-right">
+                        <td className="px-4 py-2 text-center">
                           <a
-                            href={`/home/detail/${i.findings_pk_id}`}
+                            href={`/home/detail/${i.form_new_id}`}
                             className="text-[#000080] hover:underline text-xs"
                           >
                             ดู
                           </a>
-                        </td> */}
+                        </td>
+                        <td className="px-4 py-2 text-center">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              router.push(
+                                `/user-psu/home/detail/${i.form_new_id}/owner`
+                              )
+                            }
+                            className="inline-flex items-center justify-center p-2 rounded-full 
+                              text-[#000080] hover:bg-[#000080]/10 transition"
+                            title="ดูรายละเอียด"
+                          >
+                            <Search size={18} />
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>

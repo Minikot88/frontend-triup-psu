@@ -30,17 +30,17 @@ export default function UsersPage() {
     6000: { name: "อื่นๆ" },
   };
 
-  useEffect(() => {
-    if (!isAdmin() && !isCeo()) {
-      router.replace("/403");
-      return;
-    }
+  // useEffect(() => {
+  //   if (!isAdmin() && !isCeo()) {
+  //     router.replace("/403");
+  //     return;
+  //   }
 
-    if (!isAdminLoggedIn()) {
-      router.replace("/admin/login-admin");
-      return;
-    }
-  }, [router]);
+  //   if (!isAdminLoggedIn()) {
+  //     router.replace("/admin/login-admin");
+  //     return;
+  //   }
+  // }, [router]);
 
   useEffect(() => {
     const API = process.env.NEXT_PUBLIC_API_URL;
