@@ -1,3 +1,4 @@
+// src/app/admin/users-data/page.js
 "use client";
 
 import SidebarLayout from "@/components/SidebarLayout";
@@ -29,18 +30,6 @@ export default function UsersPage() {
     5000: { name: "ผู้ชมข้อมูล" },
     6000: { name: "อื่นๆ" },
   };
-
-  // useEffect(() => {
-  //   if (!isAdmin() && !isCeo()) {
-  //     router.replace("/403");
-  //     return;
-  //   }
-
-  //   if (!isAdminLoggedIn()) {
-  //     router.replace("/admin/login-admin");
-  //     return;
-  //   }
-  // }, [router]);
 
   useEffect(() => {
     const API = process.env.NEXT_PUBLIC_API_URL;

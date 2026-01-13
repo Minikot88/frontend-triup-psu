@@ -3,110 +3,133 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import SidebarLayout from "@/components/SidebarLayout";
-import { getSession } from "@/utils/role";
-import {
-  User,
-  IdCard,
-  Building2,
-  Briefcase,
-  Shield,
-} from "lucide-react";
 
 export default function ProfilePage() {
   const router = useRouter();
-  const [session, setSession] = useState(null);
-  const [ready, setReady] = useState(false);
+  const [data, setData] = useState(null);
 
   useEffect(() => {
-    const s = getSession();
-    if (!s) {
-      router.replace("/");
-      return;
-    }
-    setSession(s);
-    setReady(true);
-  }, []);
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/psu/me`, {
+      credentials: "include",
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error("not login");
+        return res.json();
+      })
+      .then((json) => setData(json))
+      .catch(() => router.replace("/"));
+  }, [router]);
 
-  if (!ready) return null;
+  if (!data) return null;
 
-  const profile = session?.profile || {};
-  const user = session?.user || {};
-
-  const fullname =
-    profile.fullname ||
-    `${profile.prefix ?? ""}${profile.first_name ?? ""} ${
-      profile.last_name ?? ""
-    }`.trim();
+  // ✅ ดึงข้อมูลให้ตรง API จริง
+  const { profile, role } = data;
+  const roleName = role?.roles_name;
 
   return (
     <SidebarLayout>
-      <div className="max-w-3xl mx-auto space-y-6 py-6">
+      <div className="max-w-3xl mx-auto py-10 space-y-8">
 
-        {/* Header */}
-        <header className="border-b border-gray-200 pb-4">
-          <h1 className="text-lg font-semibold text-gray-900">
-            โปรไฟล์ผู้ใช้งาน
-          </h1>
-          <p className="text-xs text-gray-500 mt-1">
-            ข้อมูลส่วนตัวและสิทธิ์การใช้งานในระบบ
-          </p>
-        </header>
+        {/* ================= HEADER ================= */}
+        <div className="flex items-center gap-4">
+          <div className="w-14 h-14 rounded-full bg-blue-900 text-white flex items-center justify-center text-lg font-semibold">
+            {profile.first_name?.[0] || "U"}
+          </div>
 
-        {/* Profile */}
+          <div>
+            <div className="text-xl font-semibold text-gray-900">
+              {profile.fullname || "-"}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 mt-1">
+              <span className="text-sm text-blue-900">
+                {profile.position_th || "-"}
+              </span>
+
+              {roleName && (
+                <>
+                  <span className="text-gray-300">•</span>
+                  <span
+                    className="px-2.5 py-0.5 rounded-full text-xs font-medium
+                               bg-blue-100 text-blue-900 border border-blue-200"
+                  >
+                    {roleName}
+                  </span>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* ================= PERSONAL INFO ================= */}
         <Section title="ข้อมูลส่วนตัว">
-          <Row icon={IdCard} label="User ID" value={user.username} />
-          <Row icon={User} label="คำนำหน้า" value={profile.prefix} />
-          <Row icon={User} label="ชื่อ" value={profile.first_name} />
-          <Row icon={User} label="นามสกุล" value={profile.last_name} />
-          <Row icon={User} label="ชื่อ-นามสกุล" value={fullname} />
-          <Row icon={Briefcase} label="รหัสบุคลากร" value={profile.staffid} />
+          <Row label="ชื่อ" value={profile.first_name} />
+          <Row label="นามสกุล" value={profile.last_name} />
+          <Row label="ชื่อ-นามสกุล" value={profile.fullname} />
+          <Row label="อีเมล" value={profile.email} />
         </Section>
 
-        {/* Organization */}
-        <Section title="หน่วยงาน">
+        {/* ================= WORK INFO ================= */}
+        <Section title="ข้อมูลการทำงาน">
+          <Row label="รหัสบุคลากร" value={profile.staffid} />
+          <Row label="ตำแหน่ง" value={profile.position_th} />
+          <Row label="หน่วยงาน" value={profile.office_name_th} />
+          <Row label="ภาควิชา" value={profile.department_name} />
+          <Row label="วิทยาเขต" value={profile.campus_name} />
+        </Section>
+
+        {/* ================= ACCOUNT ================= */}
+        <Section title="บัญชีผู้ใช้">
+          <Row label="Username" value={profile.username} />
           <Row
-            icon={Building2}
-            label="ภาควิชา"
-            value={profile.department_name}
-          />
-          <Row
-            icon={Building2}
-            label="วิทยาเขต"
-            value={profile.campus_name}
+            label="Role"
+            value={
+              roleName ? (
+                <span
+                  className="inline-block px-3 py-1 rounded-full text-xs font-medium
+                             bg-blue-100 text-blue-900 border border-blue-200"
+                >
+                  {roleName}
+                </span>
+              ) : (
+                "-"
+              )
+            }
           />
         </Section>
 
-        {/* System */}
-        <Section title="ข้อมูลระบบ">
-          <Row icon={Shield} label="Role" value={user.role_name} />
-        </Section>
       </div>
     </SidebarLayout>
   );
 }
 
-/* ---------------- Components ---------------- */
+/* ================= UI COMPONENTS ================= */
 
 function Section({ title, children }) {
   return (
-    <section className="bg-white border border-gray-200 rounded-xl px-6 py-5">
-      <h2 className="text-xs font-semibold text-gray-600 mb-4 uppercase tracking-wide">
-        {title}
-      </h2>
-      <div className="space-y-3">{children}</div>
+    <section className="bg-white rounded-2xl border border-blue-100 shadow-sm">
+      <div className="px-6 py-4 border-b border-blue-100 bg-blue-50 rounded-t-2xl">
+        <h2 className="text-sm font-semibold text-blue-900 tracking-wide">
+          {title}
+        </h2>
+      </div>
+
+      <div className="px-6 py-5 space-y-4">
+        {children}
+      </div>
     </section>
   );
 }
 
-function Row({ icon: Icon, label, value }) {
+function Row({ label, value }) {
   return (
-    <div className="flex gap-3 items-start">
-      <Icon className="h-4 w-4 text-gray-400 mt-0.5" />
-      <div className="flex-1">
-        <div className="text-xs text-gray-500">{label}</div>
-        <div className="text-sm text-gray-900 font-medium">
-          {value || "-"}
-        </div>
+    <div className="grid grid-cols-3 gap-4 items-start">
+      <div className="text-xs text-gray-500 uppercase tracking-wide">
+        {label}
+      </div>
+
+      <div className="col-span-2 text-sm text-gray-900 break-words">
+        {value || "-"}
       </div>
     </div>
   );

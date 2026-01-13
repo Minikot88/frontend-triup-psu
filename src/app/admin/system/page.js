@@ -3,17 +3,18 @@
 import SidebarLayout from "@/components/SidebarLayout";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { isAdmin, isCeo } from "@/utils/role";
-import { isAdminLoggedIn } from "@/utils/auth-admin";
 
+/* ================= PAGE ================= */
 export default function UsersPage() {
   const router = useRouter();
+  const [checking, setChecking] = useState(true);
 
   const [fetchOpen, setFetchOpen] = useState(false);
   const [loadingFetch, setLoadingFetch] = useState(false);
   const [loadingImport, setLoadingImport] = useState(false);
   const [loadingImportForm, setLoadingImportForm] = useState(false);
   const [loadingImportUser, setLoadingImportUser] = useState(false);
+
   const [importFixResult, setImportFixResult] = useState(null);
   const [data, setData] = useState(null);
   const [importResult, setImportResult] = useState(null);
@@ -22,23 +23,81 @@ export default function UsersPage() {
 
   const API = process.env.NEXT_PUBLIC_API_URL;
 
-  // ----- check permission -----
+  /* ================= CHECK SESSION ================= */
   useEffect(() => {
-    if (!isAdmin() && !isCeo()) {
-      router.replace("/403");
-      return;
-    }
+    const checkSession = async () => {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        router.replace("/admin/login-admin");
+        return;
+      }
 
-    if (!isAdminLoggedIn()) {
-      router.replace("/admin/login-admin");
-      return;
-    }
-  }, [router]);
+      try {
+        const res = await fetch(`${API}/api/login-api-triup/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
 
-  // ----- fetch-all toggle -----
+        if (!res.ok) {
+          localStorage.clear();
+          router.replace("/admin/login-admin");
+          return;
+        }
+
+        setChecking(false);
+      } catch {
+        router.replace("/admin/login-admin");
+      }
+    };
+
+    checkSession();
+  }, [API, router]);
+
+  if (checking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-sm text-gray-500">
+        Checking session...
+      </div>
+    );
+  }
+
+  const logout = async () => {
+    const token = localStorage.getItem("token");
+
+    try {
+      if (token) {
+        await fetch(`${API}/api/login-api-triup/logout`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+      }
+    } catch (e) {
+      // ignore error
+    } finally {
+      // ล้าง localStorage ทุกกรณี
+      localStorage.removeItem("token");
+      localStorage.removeItem("token_exp");
+      localStorage.removeItem("roles_id");
+
+      router.replace("/user-psu/home");
+    }
+  };
+
+  const handleToggle = () => {
+    if (fetchOpen) {
+      // 🔴 จาก เปิด → ปิด = logout
+      logout();
+    } else {
+      // 🟢 จาก ปิด → เปิด = fetch
+      fetchAll();
+    }
+  };
+
+
+  /* ================= FETCH ALL ================= */
   const fetchAll = async () => {
     if (fetchOpen) {
-      // ปิด view
       setFetchOpen(false);
       return;
     }
@@ -49,13 +108,6 @@ export default function UsersPage() {
 
     try {
       const res = await fetch(`${API}/api/scripts/fetch-all`);
-      const contentType = res.headers.get("content-type") || "";
-
-      if (!contentType.includes("application/json")) {
-        const text = await res.text();
-        throw new Error(`ไม่พบ JSON:\n${text}`);
-      }
-
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Fetch failed");
 
@@ -68,25 +120,17 @@ export default function UsersPage() {
     }
   };
 
-  // ----- import functions -----
+  /* ================= IMPORT FUNCTIONS ================= */
   const importServerFix = async () => {
     setLoadingImport(true);
     setError("");
-    setImportFixResult(null); // reset
+    setImportFixResult(null);
 
     try {
       const res = await fetch(`${API}/api/scripts/import-server-fix`);
-      const contentType = res.headers.get("content-type") || "";
-
-      if (!contentType.includes("application/json")) {
-        const text = await res.text();
-        throw new Error(`ไม่พบ JSON:\n${text}`);
-      }
-
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Import failed");
-
-      setImportFixResult(json); // <-- แก้ตรงนี้
+      setImportFixResult(json);
     } catch (e) {
       setError(e.message);
     } finally {
@@ -101,16 +145,8 @@ export default function UsersPage() {
 
     try {
       const res = await fetch(`${API}/api/scripts/import-server-form`);
-      const contentType = res.headers.get("content-type") || "";
-
-      if (!contentType.includes("application/json")) {
-        const text = await res.text();
-        throw new Error(`ไม่พบ JSON:\n${text}`);
-      }
-
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Import failed");
-
       setImportResult(json);
     } catch (e) {
       setError(e.message);
@@ -126,16 +162,8 @@ export default function UsersPage() {
 
     try {
       const res = await fetch(`${API}/api/scripts/import-server-user`);
-      const contentType = res.headers.get("content-type") || "";
-
-      if (!contentType.includes("application/json")) {
-        const text = await res.text();
-        throw new Error(`ไม่พบ JSON:\n${text}`);
-      }
-
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Import failed");
-
       setImportUserResult(json);
     } catch (e) {
       setError(e.message);
@@ -152,185 +180,223 @@ export default function UsersPage() {
     ]);
   };
 
+
+  /* ================= RENDER ================= */
   return (
     <SidebarLayout>
-      <div className="max-w-6xl mx-auto p-4 space-y-4">
-        {/* Fetch All Toggle */}
-        <div className="flex flex-col md:flex-row items-center justify-between bg-[#000080] text-white rounded-xl p-4 shadow-md gap-2">
-          <h1 className="text-lg font-bold">Admin System - TRIUP Fetch</h1>
+      <div className="max-w-6xl mx-auto p-6 space-y-6">
 
-          {/* Switch */}
-          <label className="inline-flex relative items-center cursor-pointer">
-            <input
-              type="checkbox"
-              className="sr-only peer"
-              checked={fetchOpen}
-              onChange={fetchAll}
-              disabled={loadingFetch}
-            />
-            <div
-              className="w-16 h-8 rounded-full transition-colors duration-300
-                    bg-red-500 peer-checked:bg-green-500
-                    peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-green-300"
-            >
-              <div
-                className="absolute left-1 top-1 w-6 h-6 bg-white rounded-full shadow-md
-                      transform transition-transform duration-300
-                      peer-checked:translate-x-8"
-              ></div>
+        {/* ===== HEADER ===== */}
+        <div className="bg-gradient-to-r from-blue-900 to-blue-800 text-white rounded-2xl p-6 shadow">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <h1 className="text-xl font-semibold tracking-tight">
+                TRIUP Admin Console
+              </h1>
+              <p className="text-sm text-blue-100 mt-1">
+                ระบบจัดการและนำเข้าข้อมูลกลาง
+              </p>
             </div>
-            <span className="ml-3 text-sm font-medium">
-              {loadingFetch ? "Loading..." : fetchOpen ? "เปิด" : "ปิด"}
-            </span>
-          </label>
+
+            {/* Toggle */}
+            <label className="inline-flex items-center gap-3 cursor-pointer">
+              <span className="text-sm">
+                {loadingFetch ? "Loading..." : fetchOpen ? "เปิด" : "ปิด"}
+              </span>
+
+              <input
+                type="checkbox"
+                className="sr-only peer"
+                checked={fetchOpen}
+                onChange={handleToggle}
+                disabled={loadingFetch}
+              />
+
+              <div className="w-14 h-7 bg-red-500 rounded-full peer-checked:bg-green-500 transition relative">
+                <div className="absolute top-1 left-1 w-5 h-5 bg-white rounded-full transition-transform peer-checked:translate-x-7" />
+              </div>
+            </label>
+
+          </div>
         </div>
 
-        {/* Import Sections */}
+        {/* ===== ACTION CARDS ===== */}
         {fetchOpen && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* TRIUP Import */}
-            <div className="bg-[#f9f9f9] rounded-xl p-4 shadow hover:shadow-md transition cursor-pointer flex flex-col justify-between">
-              <h2 className="font-semibold mb-2 text-[#000080]">
-                TRIUP Import
-              </h2>
-              <button
-                onClick={importServerFix}
-                disabled={loadingImport}
-                className="bg-white text-[#000080] px-3 py-2 rounded-xl hover:bg-gray-100 disabled:opacity-50"
-              >
-                {loadingImport ? "Importing..." : "Run"}
-              </button>
-            </div>
-
-            {/* Import Server Form */}
-            <div className="bg-[#f9f9f9] rounded-xl p-4 shadow hover:shadow-md transition flex flex-col justify-between">
-              <h2 className="font-semibold mb-2 text-[#000080]">
-                Import Server Form
-              </h2>
-              <button
-                onClick={importServerForm}
-                disabled={loadingImportForm}
-                className="bg-white text-[#000080] px-3 py-2 rounded-xl hover:bg-gray-100 disabled:opacity-50"
-              >
-                {loadingImportForm ? "Importing..." : "Run"}
-              </button>
-            </div>
-
-            {/* Import Server User */}
-            <div className="bg-[#f9f9f9] rounded-xl p-4 shadow hover:shadow-md transition flex flex-col justify-between">
-              <h2 className="font-semibold mb-2 text-[#000080]">
-                Import Server User
-              </h2>
-              <button
-                onClick={importServerUser}
-                disabled={loadingImportUser}
-                className="bg-white text-[#000080] px-3 py-2 rounded-xl hover:bg-gray-100 disabled:opacity-50"
-              >
-                {loadingImportUser ? "Importing..." : "Run"}
-              </button>
-            </div>
-
-            {/* Import All */}
-            <div className="bg-[#f0f4ff] rounded-xl p-4 shadow hover:shadow-md transition flex flex-col justify-between">
-              <h2 className="font-semibold mb-2 text-[#000080]">Import All</h2>
-              <button
-                onClick={importAll}
-                className="bg-white text-[#000080] px-3 py-2 rounded-xl hover:bg-gray-100"
-              >
-                Run All
-              </button>
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+            <ActionCard
+              title="TRIUP Import"
+              onClick={importServerFix}
+              loading={loadingImport}
+            />
+            <ActionCard
+              title="Import Server Form"
+              onClick={importServerForm}
+              loading={loadingImportForm}
+            />
+            <ActionCard
+              title="Import Server User"
+              onClick={importServerUser}
+              loading={loadingImportUser}
+            />
+            <ActionCard
+              title="Import All"
+              onClick={importAll}
+              highlight
+            />
           </div>
         )}
 
-        {/* Error / Notification */}
+        {/* ===== ERROR ===== */}
         {error && (
-          <div className="text-red-500 text-sm whitespace-pre-wrap mt-2">
+          <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-4 text-sm">
             {error}
           </div>
         )}
 
-        {/* Import Results */}
-        <div className="space-y-2 mt-4">
-          {data && data.items && (
-            <div className="bg-white border border-gray-200 rounded-xl p-4 shadow">
-              <h3 className="font-semibold mb-2">Fetch All Results</h3>
-              <div className="overflow-x-auto">
-                <table className="min-w-full text-xs table-auto">
-                  <thead className="bg-gray-50 border-b">
-                    <tr>
-                      <th className="px-3 py-2 text-left">Key</th>
-                      <th className="px-3 py-2 text-left">Status</th>
-                      <th className="px-3 py-2 text-left">Path / Error</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.items.map((item) => (
-                      <tr key={item.key} className="border-b hover:bg-gray-50">
-                        <td className="px-3 py-2">{item.key}</td>
-                        <td className="px-3 py-2">
-                          {item.status === "ok" ? (
-                            <span className="text-green-700 font-medium">
-                              OK
-                            </span>
-                          ) : (
-                            <span className="text-red-700 font-medium">
+        {/* ===== RESULTS ===== */}
+        <div className="space-y-4">
+          {data?.items && (
+            <ResultCard title="ดึงผลลัพธ์ทั้งหมด">
+              {(() => {
+                const errors = data.items.filter(
+                  (item) => item.status !== "ok"
+                );
+
+                if (errors.length === 0) {
+                  return (
+                    <div className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-4 py-3">
+                      ✅ ทุกขั้นตอนดำเนินการสำเร็จเรียบร้อย
+                      <div className="text-xs text-gray-500 mt-1">
+                        Fetched at: {data.fetchedAt}
+                      </div>
+                    </div>
+                  );
+                }
+
+                return (
+                  <>
+                    <div className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-4 py-3 mb-3">
+                      ⚠️ พบข้อผิดพลาด {errors.length} รายการ
+                    </div>
+
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="p-3 text-left">Key</th>
+                          <th className="p-3 text-left">Status</th>
+                          <th className="p-3 text-left">Path / Error</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {errors.map((item) => (
+                          <tr
+                            key={item.key}
+                            className="border-t hover:bg-gray-50"
+                          >
+                            <td className="p-3">{item.key}</td>
+                            <td className="p-3 text-red-700 font-medium">
                               Error
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-3 py-2 break-all">
-                          {item.status === "ok" ? item.path : item.error}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                <div className="px-3 py-2 text-right text-gray-500 text-xs">
-                  Fetched at: {data.fetchedAt}
-                </div>
-              </div>
-            </div>
+                            </td>
+                            <td className="p-3 break-all">
+                              {item.error}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+
+                    <div className="text-xs text-gray-500 mt-2 text-right">
+                      Fetched at: {data.fetchedAt}
+                    </div>
+                  </>
+                );
+              })()}
+            </ResultCard>
           )}
 
-          {importResult && importResult.counts && (
-            <div className="bg-white border border-gray-200 rounded-xl p-4 shadow">
-              <h3 className="font-semibold mb-2">Server Form Import Results</h3>
-              {Object.entries(importResult.counts).map(([key, count]) => (
-                <div key={key} className="text-sm">
-                  {key}: {count}
-                </div>
-              ))}
-            </div>
+          {importFixResult?.counts && (
+            <ImportResultCard
+              title="TRIUP Import Results"
+              counts={importFixResult.counts}
+            />
           )}
 
-          {importFixResult && importFixResult.counts && (
-            <div className="bg-white border border-gray-200 rounded-xl p-4 shadow">
-              <h3 className="font-semibold mb-2 text-[#000080]">
-                TRIUP Import Results
-              </h3>
-              {Object.entries(importFixResult.counts).map(([key, count]) => (
-                <div key={key} className="text-sm">
-                  {key}: {count}
-                </div>
-              ))}
-            </div>
+
+          {importResult?.counts && (
+            <ImportResultCard
+              title="Server Form Import Results"
+              counts={importResult.counts}
+            />
           )}
 
-          {importUserResult && importUserResult.counts && (
-            <div className="bg-white border border-gray-200 rounded-xl p-4 shadow">
-              <h3 className="font-semibold mb-2">
-                Users & Researchers Import Results
-              </h3>
-              {Object.entries(importUserResult.counts).map(([key, count]) => (
-                <div key={key} className="text-sm">
-                  {key}: {count}
-                </div>
-              ))}
-            </div>
+
+          {importUserResult?.counts && (
+            <ImportResultCard
+              title="Users & Researchers Import Results"
+              counts={importUserResult.counts}
+            />
           )}
+
         </div>
+
       </div>
     </SidebarLayout>
+  );
+}
+
+/* ================= COMPONENTS ================= */
+
+function ActionCard({ title, onClick, loading, highlight }) {
+  return (
+    <div
+      className={`
+        rounded-2xl p-5 shadow-sm border
+        ${highlight ? "bg-blue-50 border-blue-200" : "bg-white border-gray-200"}
+      `}
+    >
+      <h3 className="font-medium text-gray-900 mb-3">{title}</h3>
+      <button
+        onClick={onClick}
+        disabled={loading}
+        className="
+          w-full py-2 text-sm rounded-lg
+          bg-blue-900 text-white
+          hover:bg-blue-800 disabled:bg-gray-300
+        "
+      >
+        {loading ? "Running..." : "Run"}
+      </button>
+    </div>
+  );
+}
+
+function ResultCard({ title, children }) {
+  return (
+    <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
+      <h3 className="font-semibold mb-3">{title}</h3>
+      {children}
+    </div>
+  );
+}
+
+function ImportResultCard({ title, counts }) {
+  return (
+    <ResultCard title={title}>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+        {Object.entries(counts).map(([key, value]) => (
+          <div
+            key={key}
+            className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3"
+          >
+            <div className="text-xs text-gray-500 uppercase tracking-wide">
+              {key}
+            </div>
+            <div className="text-lg font-semibold text-blue-900 mt-1">
+              {value}
+            </div>
+          </div>
+        ))}
+      </div>
+    </ResultCard>
   );
 }

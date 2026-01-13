@@ -4,27 +4,68 @@ import SidebarLayout from "@/components/SidebarLayout";
 import { useRouter, useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import Swal from "sweetalert2";
-import { User, IdCard, Building2, Briefcase, Shield } from "lucide-react";
+import {
+  User,
+  Building2,
+  Briefcase,
+  Shield,
+  ArrowLeft,
+} from "lucide-react";
+
+/* ================= ROLE MAP ================= */
+const roleMap = {
+  900: "CEO",
+  1000: "ผู้ดูแลระบบ",
+  2000: "เจ้าหน้าที่วิจัย",
+  3000: "ผู้ใช้งานทั่วไป",
+  4000: "ผู้ร่วมวิจัยภายนอก",
+  5000: "ผู้ชมข้อมูล",
+  6000: "อื่นๆ",
+};
+
+/* ================= UI COMPONENTS ================= */
+
+function Section({ title, children }) {
+  return (
+    <section className="bg-white rounded-2xl border border-gray-200 shadow-sm px-6 py-5">
+      <h2 className="text-xs font-semibold text-gray-500 mb-4 uppercase tracking-widest">
+        {title}
+      </h2>
+      <div className="space-y-4">{children}</div>
+    </section>
+  );
+}
+
+function Row({ icon: Icon, label, value }) {
+  return (
+    <div className="flex gap-3 items-start">
+      {Icon && (
+        <Icon className="h-4 w-4 text-blue-300 mt-0.5 shrink-0" />
+      )}
+      <div className="flex-1">
+        <div className="text-xs text-gray-500">{label}</div>
+        <div className="text-sm text-gray-900 font-medium break-words">
+          {value || "-"}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ================= PAGE ================= */
 
 export default function UserDetailPage() {
   const router = useRouter();
-  const params = useParams();
-  const uuid = params?.uuid;
+  const { uuid } = useParams();
 
   const [user, setUser] = useState(null);
   const [rolesId, setRolesId] = useState(0);
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const roleMap = {
-    900: "CEO",
-    1000: "ผู้ดูแลระบบ",
-    2000: "เจ้าหน้าที่วิจัย",
-    3000: "ผู้ใช้งานทั่วไป",
-    4000: "ผู้ร่วมวิจัยภายนอก",
-    5000: "ผู้ชมข้อมูล",
-    6000: "อื่นๆ",
-  };
+  const API = process.env.NEXT_PUBLIC_API_URL;
+
+  /* ================= ADMIN NAME ================= */
 
   const getActiveAdmin = () => {
     try {
@@ -44,8 +85,9 @@ export default function UserDetailPage() {
     }
   };
 
+  /* ================= LOAD DATA ================= */
+
   const load = async () => {
-    const API = process.env.NEXT_PUBLIC_API_URL;
     try {
       const res = await fetch(`${API}/api/admin/users/${uuid}`);
       const json = await res.json();
@@ -69,12 +111,14 @@ export default function UserDetailPage() {
     if (uuid) load();
   }, [uuid]);
 
+  /* ================= UPDATE ROLE ================= */
+
   const updateRole = async () => {
-    const API = process.env.NEXT_PUBLIC_API_URL;
     const changedBy = getActiveAdmin();
 
     const confirm = await Swal.fire({
       title: "ยืนยันการเปลี่ยน Role?",
+      text: "การเปลี่ยนสิทธิ์จะมีผลทันที",
       icon: "question",
       showCancelButton: true,
       confirmButtonText: "ยืนยัน",
@@ -102,172 +146,174 @@ export default function UserDetailPage() {
     load();
   };
 
-  if (loading)
+  /* ================= STATES ================= */
+
+  if (loading) {
     return (
       <SidebarLayout>
-        <div className="p-6 text-sm text-black/60">กำลังโหลดข้อมูล...</div>
-      </SidebarLayout>
-    );
-
-  if (!user)
-    return (
-      <SidebarLayout>
-        <div className="p-6 text-red-500 text-sm">ไม่พบข้อมูลผู้ใช้</div>
-      </SidebarLayout>
-    );
-
-    /* ---------------- Components ---------------- */
-function Section({ title, children }) {
-  return (
-    <section className="bg-white border border-gray-200 rounded-xl px-6 py-5">
-      <h2 className="text-xs font-semibold text-gray-600 mb-4 uppercase tracking-wide">
-        {title}
-      </h2>
-      <div className="space-y-3">{children}</div>
-    </section>
-  );
-}
-
-function Row({ icon: Icon, label, value }) {
-  return (
-    <div className="flex gap-3 items-start">
-      <Icon className="h-4 w-4 text-gray-400 mt-0.5" />
-      <div className="flex-1">
-        <div className="text-xs text-gray-500">{label}</div>
-        <div className="text-sm text-gray-900 font-medium">
-          {value || "-"}
+        <div className="p-6 text-sm text-gray-500">
+          กำลังโหลดข้อมูล...
         </div>
-      </div>
-    </div>
-  );
-}
+      </SidebarLayout>
+    );
+  }
 
+  if (!user) {
+    return (
+      <SidebarLayout>
+        <div className="p-6 text-sm text-red-500">
+          ไม่พบข้อมูลผู้ใช้
+        </div>
+      </SidebarLayout>
+    );
+  }
+
+  const profile = user.profile || {};
+
+  /* ================= RENDER ================= */
 
   return (
     <SidebarLayout>
-      <div className="p-6 space-y-6">
+      <div className="p-6 space-y-6 max-w-5xl mx-auto">
 
-        {/* Header */}
-        <div className="rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-5 text-white">
-          <h1 className="text-xl font-semibold">
-            ข้อมูลผู้ใช้ : {user.username}
-          </h1>
+        {/* ===== BACK BUTTON ===== */}
+        <div className="flex items-center">
+          <button
+            onClick={() => router.push("/admin/users-data")}
+            className="
+              inline-flex items-center gap-2
+              text-sm font-medium text-blue-900
+              hover:text-blue-700 transition
+            "
+          >
+            <ArrowLeft className="h-4 w-4" />
+            กลับไปหน้ารายชื่อผู้ใช้
+          </button>
         </div>
 
-        {/* Login Info */}
-        <div className="bg-white border rounded-2xl p-6 space-y-2">
-          <p className="text-xs"><b>Username:</b> {user.username}</p>
-          <p className="text-xs">
-            <b>Department:</b>{" "}
-            <span className="text-blue-600">
-              {user.profile?.department_name || "-"}
-            </span>
-          </p>
-          <p className="text-xs">
-            <b>Current Role:</b>{" "}
-            <span className="text-emerald-600 font-semibold">
-              {roleMap[user.roles_id]}
-            </span>
-          </p>
+        {/* ===== HEADER ===== */}
+        <div className="flex items-center gap-4 bg-white border border-blue-100 rounded-2xl p-6 shadow-sm">
+          <div className="w-14 h-14 rounded-full bg-blue-900 text-white flex items-center justify-center text-lg font-semibold">
+            {profile.first_name?.[0] || user.username?.[0] || "U"}
+          </div>
+
+          <div className="flex-1">
+            <div className="text-xl font-semibold text-gray-900">
+              {profile.fullname || "-"}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 mt-1">
+              <span className="text-sm text-blue-900">
+                {profile.position_th || "-"}
+              </span>
+
+              <span className="text-gray-300">•</span>
+
+              <span className="px-3 py-1 rounded-full text-xs font-medium
+                               bg-blue-100 text-blue-900 border border-blue-200">
+                {roleMap[user.roles_id]}
+              </span>
+            </div>
+          </div>
         </div>
 
-        {/* Profile */}
-        {/* Profile */}
-<div className="space-y-4">
-  {/* ข้อมูลส่วนตัว */}
-  <Section title="ข้อมูลส่วนตัว">
-    <Row icon={User} label="User ID" value={user.username} />
-    <Row icon={User} label="คำนำหน้า" value={user.profile?.prefix} />
-    <Row icon={User} label="ชื่อ" value={user.profile?.first_name} />
-    <Row icon={User} label="นามสกุล" value={user.profile?.last_name} />
-    <Row
-      icon={User}
-      label="ชื่อ-นามสกุล"
-      value={`${user.profile?.prefix ?? ""}${user.profile?.first_name ?? ""} ${user.profile?.last_name ?? ""}`.trim()}
-    />
-    <Row icon={Briefcase} label="รหัสบุคลากร" value={user.profile?.staffid} />
-  </Section>
+        {/* ===== GRID ===== */}
+        <div className="grid lg:grid-cols-2 gap-6">
+          <Section title="ข้อมูลส่วนตัว">
+            <Row icon={User} label="ชื่อ" value={profile.first_name} />
+            <Row icon={User} label="นามสกุล" value={profile.last_name} />
+            <Row icon={User} label="ชื่อ-นามสกุล" value={profile.fullname} />
+            <Row icon={User} label="อีเมล" value={profile.email} />
+          </Section>
 
-  {/* หน่วยงาน */}
-  <Section title="หน่วยงาน">
-    <Row icon={Building2} label="ภาควิชา" value={user.profile?.department_name} />
-    <Row icon={Building2} label="วิทยาเขต" value={user.profile?.campus_name} />
-  </Section>
+          <Section title="ข้อมูลการทำงาน">
+            <Row icon={Briefcase} label="รหัสบุคลากร" value={profile.staffid} />
+            <Row icon={Briefcase} label="ตำแหน่ง" value={profile.position_th} />
+            <Row icon={Building2} label="หน่วยงาน" value={profile.office_name_th} />
+            <Row icon={Building2} label="ภาควิชา" value={profile.department_name} />
+            <Row icon={Building2} label="วิทยาเขต" value={profile.campus_name} />
+          </Section>
+        </div>
 
-  {/* ข้อมูลระบบ */}
-  <Section title="ข้อมูลระบบ">
-    <Row icon={Shield} label="Role" value={roleMap[user.roles_id]} />
-  </Section>
-</div>
+        {/* ===== ACCOUNT ===== */}
+        <Section title="บัญชีผู้ใช้">
+          <Row label="Username" value={user.username} />
+          <Row
+            icon={Shield}
+            label="Role"
+            value={
+              <span className="inline-block px-3 py-1 rounded-full text-xs font-medium
+                               bg-blue-100 text-blue-900 border border-blue-200">
+                {roleMap[user.roles_id]}
+              </span>
+            }
+          />
+        </Section>
 
-
-        {/* Update Role */}
-        <div className="bg-white border rounded-2xl p-6 space-y-4">
-          <h2 className="text-sm font-semibold">แก้ไข Role</h2>
-
+        {/* ===== UPDATE ROLE ===== */}
+        <Section title="จัดการสิทธิ์">
           {user.roles_id === 900 && (
             <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
               ⚠️ CEO ไม่สามารถแก้ไขสิทธิ์ได้
             </div>
           )}
 
-          <select
-            disabled={user.roles_id === 900}
-            className="px-3 py-2 text-xs border rounded-lg"
-            value={rolesId}
-            onChange={(e) => setRolesId(Number(e.target.value))}
-          >
-            {Object.entries(roleMap)
-              .filter(([k]) => Number(k) !== 900)
-              .map(([k, v]) => (
-                <option key={k} value={k}>{v}</option>
-              ))}
-          </select>
+          <div className="flex flex-wrap gap-3 items-center">
+            <select
+              disabled={user.roles_id === 900}
+              className="px-3 py-2 text-sm border rounded-lg"
+              value={rolesId}
+              onChange={(e) => setRolesId(Number(e.target.value))}
+            >
+              {Object.entries(roleMap)
+                .filter(([k]) => Number(k) !== 900)
+                .map(([k, v]) => (
+                  <option key={k} value={k}>
+                    {v}
+                  </option>
+                ))}
+            </select>
 
-          <div className="flex gap-3">
             <button
               disabled={user.roles_id === 900}
               onClick={updateRole}
-              className="px-5 py-2 text-xs bg-blue-600 text-white rounded-lg disabled:bg-gray-300"
+              className="px-5 py-2 text-sm bg-blue-900 text-white rounded-lg
+                         hover:bg-blue-800 disabled:bg-gray-300"
             >
               บันทึก
             </button>
-            <button
-              onClick={() => router.back()}
-              className="px-5 py-2 text-xs border rounded-lg"
-            >
-              กลับ
-            </button>
           </div>
-        </div>
+        </Section>
 
-        {/* Logs */}
-        <div className="bg-white border rounded-2xl p-6">
-          <h2 className="text-sm font-semibold mb-3">ประวัติการเปลี่ยนสิทธิ์</h2>
-
-          <table className="w-full text-xs border">
-            <thead className="bg-gray-100">
-              <tr>
-                <th className="p-2 border">เดิม</th>
-                <th className="p-2 border">ใหม่</th>
-                <th className="p-2 border">โดย</th>
-                <th className="p-2 border">เวลา</th>
-              </tr>
-            </thead>
-            <tbody>
-              {logs.map((l) => (
-                <tr key={l.log_id}>
-                  <td className="p-2 border">{l.old_role_name}</td>
-                  <td className="p-2 border text-blue-600">{l.new_role_name}</td>
-                  <td className="p-2 border">{l.changed_by}</td>
-                  <td className="p-2 border">
-                    {new Date(l.changed_at).toLocaleString("th-TH")}
-                  </td>
+        {/* ===== ROLE LOG ===== */}
+        <Section title="ประวัติการเปลี่ยนสิทธิ์">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm border border-gray-200 rounded-lg overflow-hidden">
+              <thead className="bg-gray-50 text-gray-600">
+                <tr>
+                  <th className="p-3 border">เดิม</th>
+                  <th className="p-3 border">ใหม่</th>
+                  <th className="p-3 border">โดย</th>
+                  <th className="p-3 border">เวลา</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {logs.map((l) => (
+                  <tr key={l.log_id} className="hover:bg-gray-50">
+                    <td className="p-3 border">{l.old_role_name}</td>
+                    <td className="p-3 border text-blue-700 font-medium">
+                      {l.new_role_name}
+                    </td>
+                    <td className="p-3 border">{l.changed_by}</td>
+                    <td className="p-3 border">
+                      {new Date(l.changed_at).toLocaleString("th-TH")}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Section>
 
       </div>
     </SidebarLayout>

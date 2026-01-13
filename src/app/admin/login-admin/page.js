@@ -16,7 +16,7 @@ export default function LoginPage() {
     setMsg("");
 
     if (!email?.trim() || !password?.trim()) {
-      setMsg("กรอกอีเมล/รหัสผ่านก่อน");
+      setMsg("กรุณากรอกอีเมลและรหัสผ่าน");
       return;
     }
 
@@ -37,7 +37,7 @@ export default function LoginPage() {
 
         router.replace("/admin/dashboard");
       } else {
-        setMsg(res?.error || "username หรือ password ไม่ถูกต้อง");
+        setMsg(res?.error || "อีเมลหรือรหัสผ่านไม่ถูกต้อง");
       }
     } catch (err) {
       setMsg(err?.message || "เกิดข้อผิดพลาด");
@@ -47,31 +47,43 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-gray-100 px-6">
-      <div className="w-full max-w-md bg-white border border-gray-200 rounded-2xl shadow-sm p-8">
-        <h1 className="text-center text-sm font-semibold tracking-widest text-red-600">
-          ADMIN LOGIN
-        </h1>
+    <main className="min-h-screen flex items-center justify-center bg-gray-50 px-6">
+      <div className="w-full max-w-md bg-white rounded-2xl border border-gray-200 shadow-sm px-8 py-10">
 
-        <form onSubmit={handleLogin} className="mt-8 space-y-5">
+        {/* ===== HEADER ===== */}
+        <div className="text-center">
+          <h1 className="text-sm font-semibold tracking-widest text-red-700">
+            ADMIN LOGIN
+          </h1>
+          <p className="mt-2 text-xs text-gray-500">
+            ระบบสำหรับผู้ดูแลระบบเท่านั้น
+          </p>
+        </div>
+
+        {/* ===== FORM ===== */}
+        <form onSubmit={handleLogin} className="mt-8 space-y-6">
           <div>
-            <label className="block text-xs text-gray-600 mb-1">
+            <label className="block text-xs text-gray-500 mb-1">
               Email
             </label>
             <input
               type="email"
-              placeholder="admin@email.com"
+              placeholder="admin@psu.ac.th"
               autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm
-                focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-red-600"
+              className="
+                w-full px-4 py-2.5 rounded-lg border border-gray-300
+                text-sm text-gray-900
+                focus:outline-none focus:ring-2 focus:ring-red-600
+                focus:border-red-600
+              "
             />
           </div>
 
           <div>
-            <label className="block text-xs text-gray-600 mb-1">
+            <label className="block text-xs text-gray-500 mb-1">
               Password
             </label>
             <input
@@ -81,29 +93,38 @@ export default function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm
-                focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-red-600"
+              className="
+                w-full px-4 py-2.5 rounded-lg border border-gray-300
+                text-sm text-gray-900
+                focus:outline-none focus:ring-2 focus:ring-red-600
+                focus:border-red-600
+              "
             />
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2.5 rounded-lg bg-red-600 text-white text-sm font-medium
-              hover:bg-red-700 transition
-              disabled:opacity-60 disabled:cursor-not-allowed"
+            className="
+              w-full py-2.5 rounded-lg
+              bg-red-700 text-white text-sm font-medium
+              hover:bg-red-800 transition
+              disabled:opacity-60 disabled:cursor-not-allowed
+            "
           >
             {loading ? "Signing in..." : "Sign in"}
           </button>
         </form>
 
+        {/* ===== MESSAGE ===== */}
         {msg && (
-          <div className="mt-4 text-center text-xs text-red-600">
+          <div className="mt-5 text-center text-xs text-red-600">
             {msg}
           </div>
         )}
 
-        <div className="mt-8 text-center text-xs text-gray-400">
+        {/* ===== FOOTER ===== */}
+        <div className="mt-10 text-center text-xs text-gray-400">
           © {new Date().getFullYear()} Prince of Songkla University
         </div>
       </div>
